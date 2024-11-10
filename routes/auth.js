@@ -74,7 +74,7 @@ router.post("/register",
             password: req.body.password,
         };
 
-        const token = JWT.sign(payload, , config.jwt.options);
+        const token = JWT.sign(payload, config.jwt.secret, config.jwt.options);
 
         // console.log(email, password);
         // return res.send("auth ok");
