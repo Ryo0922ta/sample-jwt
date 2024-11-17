@@ -9,7 +9,7 @@ const post = require("./routes/post");
 // json形式でpostしてもエラーになる（Cannot read propeerties of undifined）
 app.use(express.json());
 app.use("/auth", auth);
-app.use("/post", post);
+app.use("/article", post);
 
 
 // エンドポイントを指定してそのポイントに対して　どんなレスポンスを返すか決める

@@ -3,6 +3,7 @@ const { check, validationResult } = require("express-validator");
 const { User } = require("../db/User");
 const config = require("../config");
 const bcrypt = require("bcrypt");
+const checkAuth = require("../middleware/checkAuth");
 const JWT = require("jsonwebtoken");
 
 
@@ -13,18 +14,26 @@ router.get("/", (req, res) => {
     res.send("hello Authjs");
 });
 
+// 認証ユーザーのみパス
+router.get('/protected', checkAuth, (req, res) => {
+    res.status(200).json({
+        message: 'Access granted to protected resource',
+        user: req.user,
+    });
+});
+
 //ユーザ新期登録　１：ユーザーからの入力
 router.post("/register",
     // test用、isEmail()は判定がむずすぎる
     // ２：バリデーションチェック
     check('email').contains("@"),
-    check('password').notEmpty().isLength({ min: 5 }),
+    check('password').notEmpty().isLength({ min: 10 }),
     // awit 使うならここをasyncにしないといけない
     async (req, res) => {
         const errors = validationResult(req);
         // 空でないつまりエラーが入っている
         if (!errors.isEmpty()) {
-            res.status(400).send({ errors: errors.array() });
+            return res.status(400).send({ errors: errors.array() });
         }
         // res.send('Validation successful!'); //res が返された後にres を返すことはできない
 
@@ -66,7 +75,7 @@ router.post("/register",
         // secretkey 誰にも見せてはいけない
         // expiresIn どれくらい保存するの 
         // トークン発行したらどこに保存しておく？
-        // ローカルストレージはよくないクッキーに保存するのが良い
+        // ローカルストレージはよくないクッキーに保存するのが良い　ー＞　でもモバイル開発するならローカルストレージに保存するしかない
         // XSS攻撃を受ける可能性がものすごくたかい
 
         const payload = {
@@ -85,10 +94,17 @@ router.post("/register",
     });
 
 // ログインのテスト
-router.post("/login", async (req, res) => {
-    const { email, password } = req.body;
+router.post("/login", checkAuth, async (req, res) => {
+    const { email, password } = req.user;
+    // console.log(`req.password${password}`);
+    // console.log(`req.email${email}`);
+    // console.log(`登録ユーザ${User}`);
+
 
     const user = User.find((user) => user.email === email);
+    // データの永続化してないから一時的に入れたゆーざの値がすぐに消える
+
+    // console.log(`dbから検索したpassword${user}`);
 
     if (!user) {
         return res.status(400).json([
@@ -97,6 +113,7 @@ router.post("/login", async (req, res) => {
             },
         ]);
     }
+
 
     //パスワード照合
     const isMatch = await bcrypt.compare(password, user.password);
@@ -109,16 +126,18 @@ router.post("/login", async (req, res) => {
         ]);
     }
 
-    const payload = {
-        email: req.body.email,
-        password: req.body.password,
-    };
+    // const payload = {
+    //     email: req.body.email,
+    //     password: req.body.password,
+    // };
 
-    const token = JWT.sign(payload, config.jwt.secret, config.jwt.options);
+    // const token = JWT.sign(payload, config.jwt.secret, config.jwt.options);
 
-    return res.json({
-        token: token,
+    res.status(200).json({
+        message: 'Access granted to protected resource',
+        user: req.user,
     });
+
 });
 
 
